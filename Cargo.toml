@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "crates/rs_tip_errors",
+    "crates/rs_tip_syntax"
+]

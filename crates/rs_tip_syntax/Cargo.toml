@@ -1,0 +1,17 @@
+[package]
+name = "rs_tip_syntax"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+lalrpop = "0.19.8"
+
+[dependencies]
+anyhow = "1.0.68"
+lalrpop-util = "0.19.8"
+logos = "0.12.1"
+rs_tip_errors = { path = "../rs_tip_errors" }
+thiserror = "1.0.38"
+

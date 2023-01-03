@@ -1,0 +1,4 @@
+extern {
+    type Location = usize;
+    type Error = lexer::LexicalError;
+}
