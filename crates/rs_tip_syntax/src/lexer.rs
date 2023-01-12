@@ -36,8 +36,8 @@ impl<'source> Iterator for Lexer<'source> {
         Some(if token == Token::Error {
             self.err_span(
                 LexicalError::InvalidInput(self.inner.slice().to_owned()),
-                span.start.clone(),
-                span.end.clone(),
+                span.start,
+                span.end,
             )
         } else {
             Ok((span.start, token, span.end))
@@ -45,7 +45,7 @@ impl<'source> Iterator for Lexer<'source> {
     }
 }
 
-#[derive(Logos, Debug, PartialEq)]
+#[derive(Logos, Debug, PartialEq, Eq)]
 pub enum Token {
     #[error]
     #[regex(r"[ \t\n\f]+", logos::skip)]
@@ -128,9 +128,8 @@ mod tests {
     ^^^
 }
 ";
-        let mut lex = Lexer::new(source);
-
-        while let Some(token) = lex.next() {
+        let lex = Lexer::new(source);
+        for token in lex {
             eprintln!("{:?}", token);
         }
     }
