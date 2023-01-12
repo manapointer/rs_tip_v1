@@ -408,6 +408,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "rs_tip_ty"
+version = "0.1.0"
+dependencies = [
+ "petgraph",
+]
+
+[[package]]
 name = "rustversion"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"

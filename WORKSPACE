@@ -33,6 +33,7 @@ crates_repository(
         "//:Cargo.toml",
         "//crates/rs_tip_errors:Cargo.toml",
         "//crates/rs_tip_syntax:Cargo.toml",
+        "//crates/rs_tip_ty:Cargo.toml",
     ],
 )
 
