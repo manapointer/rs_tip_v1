@@ -1,8 +1,8 @@
-use crate::Term;
+use crate::Ty;
 use petgraph::{graph::IndexType, unionfind::UnionFind};
 
 pub struct UnionFindSolver {
-    unionfind: UnionFind<Term>,
+    unionfind: UnionFind<Ty>,
 }
 
 impl UnionFindSolver {
@@ -12,21 +12,21 @@ impl UnionFindSolver {
         }
     }
 
-    pub fn unify(&mut self, t1: Term, t2: Term) {
+    pub fn unify(&mut self, t1: Ty, t2: Ty) {
         if self.unionfind.union(t1, t2) {
             return;
         }
 
         match (t1, t2) {
-            // (Term)
+            // (Ty)
             _ => unreachable!(),
         }
     }
 }
 
-unsafe impl IndexType for Term {
-    fn new(x: usize) -> Term {
-        Term {
+unsafe impl IndexType for Ty {
+    fn new(x: usize) -> Ty {
+        Ty {
             interned: IndexType::new(x),
         }
     }
@@ -35,8 +35,8 @@ unsafe impl IndexType for Term {
         IndexType::index(&self.interned)
     }
 
-    fn max() -> Term {
-        Term {
+    fn max() -> Ty {
+        Ty {
             interned: IndexType::max(),
         }
     }
