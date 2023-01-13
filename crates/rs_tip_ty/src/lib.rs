@@ -5,10 +5,10 @@ use hash::hash;
 mod hash;
 pub mod solvers;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct VarId(u32);
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct FreshVarId(u32);
 
 pub struct Interners {
@@ -87,6 +87,13 @@ impl TyCtxtInner {
 }
 
 #[derive(Clone, PartialEq, Eq, Hash)]
+pub enum TermKind {
+    Var,
+    Cons,
+    Mu,
+}
+
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum TyKind {
     Int,
     Function(Vec<Ty>, Ty),
@@ -99,6 +106,18 @@ pub enum TyKind {
 }
 
 impl TyKind {
+    pub fn term_kind(&self) -> TermKind {
+        match self {
+            TyKind::Var(_) | TyKind::FreshVar(_) => TermKind::Var,
+            TyKind::Int
+            | TyKind::Function(_, _)
+            | TyKind::Pointer(_)
+            | TyKind::Record(_)
+            | TyKind::AbsentField => TermKind::Cons,
+            TyKind::Recursive(_, _) => TermKind::Mu,
+        }
+    }
+
     pub fn substitute(&self, interner: TyCtxt, from: VarId, to: Ty) -> Ty {
         match self {
             TyKind::Int => Ty::for_kind(interner, self),
@@ -115,7 +134,14 @@ impl TyKind {
             TyKind::Pointer(of) => {
                 Ty::intern(interner, TyKind::Pointer(of.substitute(interner, from, to)))
             }
-            TyKind::Record(_) => todo!(),
+            TyKind::Record(args) => Ty::intern(
+                interner,
+                TyKind::Record(
+                    args.iter()
+                        .map(|arg| arg.substitute(interner, from, to))
+                        .collect(),
+                ),
+            ),
             TyKind::AbsentField => Ty::for_kind(interner, self),
             TyKind::Var(v) => {
                 if *v == from {
@@ -135,6 +161,28 @@ impl TyKind {
                     )
                 }
             }
+        }
+    }
+
+    fn arity(&self) -> usize {
+        match self {
+            TyKind::Function(params, _) => params.len() + 1,
+            TyKind::Pointer(_) => 1,
+            _ => 0,
+        }
+    }
+
+    fn matches(&self, other: &TyKind) -> bool {
+        if self.term_kind() != TermKind::Cons || other.term_kind() != TermKind::Cons {
+            return false;
+        }
+        match (self, other) {
+            (TyKind::Int, TyKind::Int)
+            | (TyKind::Function(_, _), TyKind::Function(_, _))
+            | (TyKind::Pointer(_), TyKind::Pointer(_))
+            | (TyKind::Record(_), TyKind::Record(_))
+            | (TyKind::AbsentField, TyKind::AbsentField) => self.arity() == other.arity(),
+            _ => false,
         }
     }
 }
@@ -158,8 +206,12 @@ impl Ty {
             .unwrap()
     }
 
-    fn substitute(&self, interner: TyCtxt, from: VarId, to: Ty) -> Ty {
-        let kind = interner.ty_kind(self.interned);
+    fn substitute(self, interner: TyCtxt, from: VarId, to: Ty) -> Ty {
+        let kind = self.kind(interner);
         kind.substitute(interner, from, to)
+    }
+
+    fn kind(self, interner: TyCtxt) -> Rc<TyKind> {
+        interner.ty_kind(self.interned)
     }
 }

@@ -411,7 +411,7 @@ dependencies = [
 name = "rs_tip_ty"
 version = "0.1.0"
 dependencies = [
- "petgraph",
+ "anyhow",
 ]
 
 [[package]]
