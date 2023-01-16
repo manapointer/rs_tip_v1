@@ -28,7 +28,7 @@ impl fmt::Display for Diagnostic {
 
 impl Error for Diagnostic {}
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Span {
     start: usize,
     end: usize,

@@ -2,20 +2,8 @@ use crate::{TermKind, Ty, TyCtxt};
 use anyhow::{anyhow, Result};
 use std::{fmt, hash::Hash};
 
-/// `UnionFind<K>` is a disjoint-set data structure. It tracks set membership of *n* elements
-/// indexed from *0* to *n - 1*. The scalar type is `K` which must be an unsigned integer type.
-///
-/// <http://en.wikipedia.org/wiki/Disjoint-set_data_structure>
-///
-/// Too awesome not to quote:
-///
-/// “The amortized time per operation is **O(α(n))** where **α(n)** is the
-/// inverse of **f(x) = A(x, x)** with **A** being the extremely fast-growing Ackermann function.”
 #[derive(Debug, Clone)]
 struct UnionFind<K> {
-    // For element at index *i*, store the index of its parent; the representative itself
-    // stores its own index. This forms equivalence classes which are the disjoint sets, each
-    // with a unique representative.
     parent: Vec<K>,
 }
 
@@ -35,17 +23,13 @@ impl<K> UnionFind<K>
 where
     K: IndexType,
 {
-    /// Create a new `UnionFind` of `n` disjoint sets.
-    pub fn new(n: usize) -> Self {
+    fn new(n: usize) -> Self {
         let parent = (0..n).map(K::new).collect::<Vec<K>>();
 
         UnionFind { parent }
     }
 
-    /// Return the representative for `x`.
-    ///
-    /// **Panics** if `x` is out of bounds.
-    pub fn find(&self, x: K) -> K {
+    fn find(&self, x: K) -> K {
         assert!(x.index() < self.parent.len());
         unsafe {
             let mut x = x;
@@ -61,13 +45,7 @@ where
         }
     }
 
-    /// Return the representative for `x`.
-    ///
-    /// Write back the found representative, flattening the internal
-    /// datastructure in the process and quicken future lookups.
-    ///
-    /// **Panics** if `x` is out of bounds.
-    pub fn find_mut(&mut self, x: K) -> K {
+    fn find_mut(&mut self, x: K) -> K {
         assert!(x.index() < self.parent.len());
         unsafe { self.find_mut_recursive(x) }
     }
@@ -83,18 +61,11 @@ where
         x
     }
 
-    /// Returns `true` if the given elements belong to the same set, and returns
-    /// `false` otherwise.
-    pub fn equiv(&self, x: K, y: K) -> bool {
+    fn equiv(&self, x: K, y: K) -> bool {
         self.find(x) == self.find(y)
     }
 
-    /// Unify the two sets containing `x` and `y`.
-    ///
-    /// Return `false` if the sets were already the same, `true` if they were unified.
-    ///
-    /// **Panics** if `x` or `y` is out of bounds.
-    pub fn union(&mut self, x: K, y: K) -> bool {
+    fn union(&mut self, x: K, y: K) -> bool {
         if x == y {
             return false;
         }
@@ -106,19 +77,6 @@ where
         }
         self.parent[xrep.index()] = yrep;
         true
-    }
-
-    /// Return a vector mapping each element to its representative.
-    pub fn into_labeling(mut self) -> Vec<K> {
-        // write in the labeling of each element
-        unsafe {
-            for ix in 0..self.parent.len() {
-                let k = *get_unchecked(&self.parent, ix);
-                let xrep = self.find_mut_recursive(k);
-                *self.parent.get_unchecked_mut(ix) = xrep;
-            }
-        }
-        self.parent
     }
 }
 
