@@ -1,8 +1,49 @@
+use crate::ast::*;
 use crate::lexer;
 
 grammar;
 
+#[inline]
+Spanned<T>: Spanned<T> = <l:@L> <t:T> <r:@R> => t.into_spanned(l, r);
+
+pub(crate) Program: AstProgram = Spanned<Program_> => <>;
+
+Program_: Program = 
+
+Functions: Vec<AstFunction> = "INT"* => 
+
 extern {
     type Location = usize;
-    type Error = lexer::LexicalError;
+    type Error = anyhow::Error;
+
+    enum lexer::Token {
+        "INT" => lexer::Token::Int,
+        "IDENTIFIER" => lexer::Token::Identifier,
+
+        "input" => lexer::Token::Input,
+        "output" => lexer::Token::Output,
+        "if" => lexer::Token::If,
+        "else" => lexer::Token::Else,
+        "while" => lexer::Token::While,
+        "return" => lexer::Token::Return,
+        "var" => lexer::Token::Var,
+        "alloc" => lexer::Token::Alloc,
+        "null" => lexer::Token::Null,
+
+        "," => lexer::Token::Comma,
+        ":" => lexer::Token::Colon,
+        ";" => lexer::Token::Semicolon,
+        "&" => lexer::Token::Ampersand,
+        "+" => lexer::Token::Plus,
+        "-" => lexer::Token::Minus,
+        "*" => lexer::Token::Star,
+        "/" => lexer::Token::Slash,
+        ">" => lexer::Token::Greater,
+        "=" => lexer::Token::Equal,
+        "==" => lexer::Token::EqualEqual,
+        "(" => lexer::Token::OpeningRound,
+        "{" => lexer::Token::OpeningCurly,
+        ")" => lexer::Token::ClosingRound,
+        "}" => lexer::Token::ClosingCurly,
+    }
 }
