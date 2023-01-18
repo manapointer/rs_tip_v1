@@ -1,5 +1,7 @@
 use crate::lexer;
 
+grammar;
+
 extern {
     type Location = usize;
     type Error = lexer::LexicalError;
