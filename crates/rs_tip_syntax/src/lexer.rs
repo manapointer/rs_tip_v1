@@ -80,6 +80,8 @@ pub enum Token {
     // Symbols
     #[token(",")]
     Comma,
+    #[token(".")]
+    Dot,
     #[token(":")]
     Colon,
     #[token(";")]

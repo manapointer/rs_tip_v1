@@ -41,23 +41,40 @@ Stm_: Stm = {
 Exp: AstExp = CompTest;
 
 CompTest: AstExp = {
-    <l:@L> <lhs:ArithExp> "==" <rhs:ArithExp> <r:@R> => Exp::Binary(Box::new(lhs), BinOp::Equal, Box::new(rhs)).into_spanned(l, r),
-    <l:@L> <lhs:ArithExp> ">" <rhs:ArithExp> <r:@R> => Exp::Binary(Box::new(lhs), BinOp::Greater, Box::new(rhs)).into_spanned(l, r),
+    <l:@L> <lhs:CompTest> "==" <rhs:ArithExp> <r:@R> => Exp::Binary(Box::new(lhs), BinOp::Equal, Box::new(rhs)).into_spanned(l, r),
+    <l:@L> <lhs:CompTest> ">" <rhs:ArithExp> <r:@R> => Exp::Binary(Box::new(lhs), BinOp::Greater, Box::new(rhs)).into_spanned(l, r),
+    ArithExp,
 }
 
 ArithExp: AstExp = {
-    <l:@L> <lhs:FactorExp> "+" <rhs:FactorExp> <r:@R> => Exp::Binary(Box::new(lhs), BinOp::Add, Box::new(rhs)).into_spanned(l, r),
-    <l:@L> <lhs:FactorExp> "-" <rhs:FactorExp> <r:@R> => Exp::Binary(Box::new(lhs), BinOp::Subtract, Box::new(rhs)).into_spanned(l, r),
+    <l:@L> <lhs:ArithExp> "+" <rhs:FactorExp> <r:@R> => Exp::Binary(Box::new(lhs), BinOp::Add, Box::new(rhs)).into_spanned(l, r),
+    <l:@L> <lhs:ArithExp> "-" <rhs:FactorExp> <r:@R> => Exp::Binary(Box::new(lhs), BinOp::Subtract, Box::new(rhs)).into_spanned(l, r),
+    FactorExp,
 }
 
 FactorExp: AstExp = {
-    <l:@L> <lhs:TermExp> "*" <rhs:TermExp> <r:@R> => Exp::Binary(Box::new(lhs), BinOp::Multiply, Box::new(rhs)).into_spanned(l, r),
-    <l:@L> <lhs:TermExp> "/" <rhs:TermExp> <r:@R> => Exp::Binary(Box::new(lhs), BinOp::Divide, Box::new(rhs)).into_spanned(l, r),
+    <l:@L> <lhs:FactorExp> "*" <rhs:TermExp> <r:@R> => Exp::Binary(Box::new(lhs), BinOp::Multiply, Box::new(rhs)).into_spanned(l, r),
+    <l:@L> <lhs:FactorExp> "/" <rhs:TermExp> <r:@R> => Exp::Binary(Box::new(lhs), BinOp::Divide, Box::new(rhs)).into_spanned(l, r),
+    TermExp,
 }
 
 TermExp: AstExp = {
+    <l:@L> "-" <exp:CallExp> <r:@R> => Exp::Unary(UnOp::Negative, Box::new(exp)).into_spanned(l, r),
+    <l:@L> "alloc" <exp:CallExp> <r:@R> => Exp::Alloc(Box::new(exp)).into_spanned(l, r),
+    <l:@L> "*" <exp:CallExp> <r:@R> => Exp::Dereference(Box::new(exp)).into_spanned(l, r),
+    CallExp,
+}
+    
+CallExp: AstExp = {
+    <l:@L> <f:PrimaryExp> "(" <args:Exp*> ")" <r:@R> => Exp::Call(Box::new(f), args).into_spanned(l, r),
+    <l:@L> <f:CallExp> "." <ident:Spanned<"IDENTIFIER">> => Exp::Field(Box::new(f), ident).into_spanned(l, r),
+    PrimaryExp,
+}
+
+PrimaryExp: AstExp = {
     <l:@L> <int:Spanned<"INT">> <r:@R> => Exp::Int(int).into_spanned(l, r),
     <l:@L> <ident:Spanned<"IDENTIFIER">> <r:@R> => Exp::Identifier(ident).into_spanned(l, r),
+    <l:@L> "&" <ident:Spanned<"IDENTIFIER">> <r:@R> => Exp::Pointer(ident).into_spanned(l, r),
     <l:@L> "null" <r:@R> => Exp::Null.into_spanned(l, r),
 }
 
@@ -80,6 +97,7 @@ extern {
         "null" => lexer::Token::Null,
 
         "," => lexer::Token::Comma,
+        "." => lexer::Token::Dot,
         ":" => lexer::Token::Colon,
         ";" => lexer::Token::Semicolon,
         "&" => lexer::Token::Ampersand,
