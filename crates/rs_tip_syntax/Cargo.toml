@@ -15,3 +15,5 @@ logos = "0.12.1"
 rs_tip_errors = { path = "../rs_tip_errors" }
 thiserror = "1.0.38"
 
+[dev-dependencies]
+expect-test = "1.4.0"

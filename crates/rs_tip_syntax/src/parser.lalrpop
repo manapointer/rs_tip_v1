@@ -6,19 +6,19 @@ grammar;
 #[inline]
 Spanned<T>: Spanned<T> = <l:@L> <t:T> <r:@R> => t.into_spanned(l, r);
 
-pub(crate) Program: AstProgram = Spanned<Program_> => <>;
+pub(crate) Prog: AstProg = Spanned<Prog_>;
+Prog_: Prog = Fun* => Prog { funs: <> };
 
-Program_: Program = 
-
-Functions: Vec<AstFunction> = "INT"* => 
+Fun: AstFun = Spanned<Fun_>;
+Fun_: Fun = <name:Spanned<"IDENTIFIER">> "(" <params:Spanned<"IDENTIFIER">*> ")" => Fun { name, params };
 
 extern {
     type Location = usize;
     type Error = anyhow::Error;
 
     enum lexer::Token {
-        "INT" => lexer::Token::Int,
-        "IDENTIFIER" => lexer::Token::Identifier,
+        "INT" => lexer::Token::Int(<i32>),
+        "IDENTIFIER" => lexer::Token::Identifier(<String>),
 
         "input" => lexer::Token::Input,
         "output" => lexer::Token::Output,

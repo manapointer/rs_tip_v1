@@ -45,7 +45,7 @@ impl<'source> Iterator for Lexer<'source> {
     }
 }
 
-#[derive(Logos, Debug, PartialEq, Eq)]
+#[derive(Logos, Debug, Clone, PartialEq, Eq)]
 pub enum Token {
     #[error]
     #[regex(r"[ \t\n\f]+", logos::skip)]

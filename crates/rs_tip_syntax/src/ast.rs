@@ -1,7 +1,8 @@
+#[derive(Clone, Debug)]
 pub(crate) struct Spanned<T> {
-    start: usize,
-    end: usize,
-    node: T,
+    pub(crate) start: usize,
+    pub(crate) end: usize,
+    pub(crate) node: T,
 }
 
 pub(crate) type AstInt = Spanned<i32>;
@@ -9,21 +10,24 @@ pub(crate) type AstString = Spanned<String>;
 pub(crate) type AstExpr = Spanned<Expr>;
 pub(crate) type AstField = Spanned<Field>;
 pub(crate) type AstStmt = Spanned<Stmt>;
-pub(crate) type AstFunction = Spanned<Function>;
-pub(crate) type AstProgram = Spanned<Program>;
+pub(crate) type AstFun = Spanned<Fun>;
+pub(crate) type AstProg = Spanned<Prog>;
 
-pub(crate) struct Program {
-    functions: Vec<AstFunction>,
+#[derive(Debug)]
+pub(crate) struct Prog {
+    pub(crate) funs: Vec<AstFun>,
 }
 
-pub(crate) struct Function {
-    name: AstString,
-    parameters: Vec<AstString>,
-    variables: Vec<AstString>,
-    statements: Vec<AstStmt>,
-    return_: AstExpr,
+#[derive(Debug)]
+pub(crate) struct Fun {
+    pub(crate) name: AstString,
+    pub(crate) params: Vec<AstString>,
+    // variables: Vec<AstString>,
+    // statements: Vec<AstStmt>,
+    // return_: AstExpr,
 }
 
+#[derive(Debug)]
 pub(crate) enum Stmt {
     IdentifierAssign(AstString, AstExpr),
     PointerAssign(AstExpr, AstExpr),
@@ -34,6 +38,7 @@ pub(crate) enum Stmt {
     While(AstExpr, Box<AstStmt>),
 }
 
+#[derive(Debug)]
 pub(crate) enum Expr {
     Int(AstInt),
     Identifier(AstString),
@@ -49,15 +54,18 @@ pub(crate) enum Expr {
     Field(Box<AstExpr>, AstString),
 }
 
+#[derive(Debug)]
 pub(crate) struct Field {
     name: AstString,
     value: Box<AstExpr>,
 }
 
+#[derive(Debug)]
 pub(crate) enum UnOp {
     Negative,
 }
 
+#[derive(Debug)]
 pub(crate) enum BinOp {
     Add,
     Subtract,
