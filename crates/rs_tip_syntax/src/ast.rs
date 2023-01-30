@@ -7,9 +7,9 @@ pub(crate) struct Spanned<T> {
 
 pub(crate) type AstInt = Spanned<i32>;
 pub(crate) type AstString = Spanned<String>;
-pub(crate) type AstExpr = Spanned<Expr>;
+pub(crate) type AstExp = Spanned<Exp>;
 pub(crate) type AstField = Spanned<Field>;
-pub(crate) type AstStmt = Spanned<Stmt>;
+pub(crate) type AstStm = Spanned<Stm>;
 pub(crate) type AstFun = Spanned<Fun>;
 pub(crate) type AstProg = Spanned<Prog>;
 
@@ -22,42 +22,42 @@ pub(crate) struct Prog {
 pub(crate) struct Fun {
     pub(crate) name: AstString,
     pub(crate) params: Vec<AstString>,
-    // variables: Vec<AstString>,
-    // statements: Vec<AstStmt>,
-    // return_: AstExpr,
+    pub(crate) vars: Vec<AstString>,
+    pub(crate) stms: Vec<AstStm>,
+    pub(crate) return_: AstExp,
 }
 
 #[derive(Debug)]
-pub(crate) enum Stmt {
-    IdentifierAssign(AstString, AstExpr),
-    PointerAssign(AstExpr, AstExpr),
-    FieldAssign(AstString, AstString, AstExpr),
-    DereferenceFieldAssign(AstExpr, AstString, AstExpr),
-    Output(AstExpr),
-    If(AstExpr, Box<AstStmt>, Option<Box<AstStmt>>),
-    While(AstExpr, Box<AstStmt>),
+pub(crate) enum Stm {
+    IdentifierAssign(AstString, AstExp),
+    PointerAssign(AstExp, AstExp),
+    FieldAssign(AstString, AstString, AstExp),
+    DereferenceFieldAssign(AstExp, AstString, AstExp),
+    Output(AstExp),
+    If(AstExp, Vec<AstStm>, Option<Vec<AstStm>>),
+    While(AstExp, Vec<AstStm>),
 }
 
 #[derive(Debug)]
-pub(crate) enum Expr {
+pub(crate) enum Exp {
     Int(AstInt),
     Identifier(AstString),
-    Unary(UnOp, Box<AstExpr>),
-    Binary(Box<AstExpr>, BinOp, Box<AstExpr>),
+    Unary(UnOp, Box<AstExp>),
+    Binary(Box<AstExp>, BinOp, Box<AstExp>),
     Input,
-    Call(Box<AstExpr>, Vec<AstExpr>),
-    Alloc(Box<AstExpr>),
+    Call(Box<AstExp>, Vec<AstExp>),
+    Alloc(Box<AstExp>),
     Pointer(AstString),
-    Dereference(Box<AstExpr>),
+    Dereference(Box<AstExp>),
     Null,
     Record(Vec<AstField>),
-    Field(Box<AstExpr>, AstString),
+    Field(Box<AstExp>, AstString),
 }
 
 #[derive(Debug)]
 pub(crate) struct Field {
     name: AstString,
-    value: Box<AstExpr>,
+    value: Box<AstExp>,
 }
 
 #[derive(Debug)]

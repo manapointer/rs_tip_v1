@@ -6,11 +6,60 @@ grammar;
 #[inline]
 Spanned<T>: Spanned<T> = <l:@L> <t:T> <r:@R> => t.into_spanned(l, r);
 
+Comma<T>: Vec<T> = <mut v:(<T> ",")*> <e:T?> => match e {
+    Some(e) => {
+        v.push(e);
+        v
+    }
+    None => v,
+};
+
 pub(crate) Prog: AstProg = Spanned<Prog_>;
 Prog_: Prog = Fun* => Prog { funs: <> };
 
 Fun: AstFun = Spanned<Fun_>;
-Fun_: Fun = <name:Spanned<"IDENTIFIER">> "(" <params:Spanned<"IDENTIFIER">*> ")" => Fun { name, params };
+Fun_: Fun = <name:Spanned<"IDENTIFIER">> "(" <params:Comma<Spanned<"IDENTIFIER">>> ")" "{" <vars:("var" <Comma<Spanned<"IDENTIFIER">>> ";")?> <stms:Stm+> "return" <return_:Exp> ";" "}" => Fun { 
+    name,
+    params,
+    vars: vars.unwrap_or_else(|| Vec::new()),
+    stms,
+    return_: Spanned {
+        start: 0,
+        end: 0,
+        node: Exp::Null,
+    }
+};
+
+Stm: AstStm = Spanned<Stm_>;
+Stm_: Stm = {
+    <id:Spanned<"IDENTIFIER">> "=" <exp:Exp> ";" => Stm::IdentifierAssign(id, exp),
+    "output" <exp:Exp> ";" => Stm::Output(exp),
+    "if" "(" <cond:Exp> ")" "{" <then:Stm+> "}" <else_:("else" "{" <Stm+> "}")?> => Stm::If(cond, then, else_),
+    "while" "(" <cond:Exp> ")" "{" <body:Stm+> "}" => Stm::While(cond, body),
+}
+
+Exp: AstExp = CompTest;
+
+CompTest: AstExp = {
+    <l:@L> <lhs:ArithExp> "==" <rhs:ArithExp> <r:@R> => Exp::Binary(Box::new(lhs), BinOp::Equal, Box::new(rhs)).into_spanned(l, r),
+    <l:@L> <lhs:ArithExp> ">" <rhs:ArithExp> <r:@R> => Exp::Binary(Box::new(lhs), BinOp::Greater, Box::new(rhs)).into_spanned(l, r),
+}
+
+ArithExp: AstExp = {
+    <l:@L> <lhs:FactorExp> "+" <rhs:FactorExp> <r:@R> => Exp::Binary(Box::new(lhs), BinOp::Add, Box::new(rhs)).into_spanned(l, r),
+    <l:@L> <lhs:FactorExp> "-" <rhs:FactorExp> <r:@R> => Exp::Binary(Box::new(lhs), BinOp::Subtract, Box::new(rhs)).into_spanned(l, r),
+}
+
+FactorExp: AstExp = {
+    <l:@L> <lhs:TermExp> "*" <rhs:TermExp> <r:@R> => Exp::Binary(Box::new(lhs), BinOp::Multiply, Box::new(rhs)).into_spanned(l, r),
+    <l:@L> <lhs:TermExp> "/" <rhs:TermExp> <r:@R> => Exp::Binary(Box::new(lhs), BinOp::Divide, Box::new(rhs)).into_spanned(l, r),
+}
+
+TermExp: AstExp = {
+    <l:@L> <int:Spanned<"INT">> <r:@R> => Exp::Int(int).into_spanned(l, r),
+    <l:@L> <ident:Spanned<"IDENTIFIER">> <r:@R> => Exp::Identifier(ident).into_spanned(l, r),
+    <l:@L> "null" <r:@R> => Exp::Null.into_spanned(l, r),
+}
 
 extern {
     type Location = usize;
