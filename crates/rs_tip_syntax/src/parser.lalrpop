@@ -23,11 +23,7 @@ Fun_: Fun = <name:Spanned<"IDENTIFIER">> "(" <params:Comma<Spanned<"IDENTIFIER">
     params,
     vars: vars.unwrap_or_else(|| Vec::new()),
     stms,
-    return_: Spanned {
-        start: 0,
-        end: 0,
-        node: Exp::Null,
-    }
+    return_,
 };
 
 Stm: AstStm = Spanned<Stm_>;
@@ -36,6 +32,9 @@ Stm_: Stm = {
     "output" <exp:Exp> ";" => Stm::Output(exp),
     "if" "(" <cond:Exp> ")" "{" <then:Stm+> "}" <else_:("else" "{" <Stm+> "}")?> => Stm::If(cond, then, else_),
     "while" "(" <cond:Exp> ")" "{" <body:Stm+> "}" => Stm::While(cond, body),
+    "*" <target:Exp> "=" <val:Exp> ";" => Stm::PointerAssign(target, val),
+    <id:Spanned<"IDENTIFIER">> "." <field:Spanned<"IDENTIFIER">> "=" <val:Exp> ";" => Stm::FieldAssign(id, field, val),
+    "(" "*" <target:Exp> ")" "." <field:Spanned<"IDENTIFIER">> "=" <val:Exp> ";" => Stm::DereferenceFieldAssign(target, field, val),
 }
 
 Exp: AstExp = CompTest;
@@ -66,8 +65,8 @@ TermExp: AstExp = {
 }
     
 CallExp: AstExp = {
-    <l:@L> <f:PrimaryExp> "(" <args:Exp*> ")" <r:@R> => Exp::Call(Box::new(f), args).into_spanned(l, r),
-    <l:@L> <f:CallExp> "." <ident:Spanned<"IDENTIFIER">> => Exp::Field(Box::new(f), ident).into_spanned(l, r),
+    <l:@L> <f:CallExp> "(" <args:Comma<Exp>> ")" <r:@R> => Exp::Call(Box::new(f), args).into_spanned(l, r),
+    <l:@L> <f:CallExp> "." <ident:Spanned<"IDENTIFIER">> <r:@R> => Exp::Field(Box::new(f), ident).into_spanned(l, r),
     PrimaryExp,
 }
 
@@ -75,8 +74,13 @@ PrimaryExp: AstExp = {
     <l:@L> <int:Spanned<"INT">> <r:@R> => Exp::Int(int).into_spanned(l, r),
     <l:@L> <ident:Spanned<"IDENTIFIER">> <r:@R> => Exp::Identifier(ident).into_spanned(l, r),
     <l:@L> "&" <ident:Spanned<"IDENTIFIER">> <r:@R> => Exp::Pointer(ident).into_spanned(l, r),
+    <l:@L> "input" <r:@R> => Exp::Input.into_spanned(l, r),
     <l:@L> "null" <r:@R> => Exp::Null.into_spanned(l, r),
+    <l:@L> "{" <fields:Comma<Field>> "}" <r:@R> => Exp::Record(fields).into_spanned(l, r),
 }
+
+Field: AstField = Spanned<Field_>;
+Field_: Field = <name:Spanned<"IDENTIFIER">> ":" <value:Exp> => Field { name, value: Box::new(value) };
 
 extern {
     type Location = usize;

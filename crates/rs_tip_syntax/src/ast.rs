@@ -56,8 +56,8 @@ pub(crate) enum Exp {
 
 #[derive(Debug)]
 pub(crate) struct Field {
-    name: AstString,
-    value: Box<AstExp>,
+    pub(crate) name: AstString,
+    pub(crate) value: Box<AstExp>,
 }
 
 #[derive(Debug)]
