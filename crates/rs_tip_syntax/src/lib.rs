@@ -1,6 +1,6 @@
 use lalrpop_util::lalrpop_mod;
 
-mod ast;
+pub mod ast;
 mod lexer;
 
 #[cfg(test)]

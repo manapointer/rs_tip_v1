@@ -1,34 +1,34 @@
-#[derive(Clone, Debug)]
-pub(crate) struct Spanned<T> {
-    pub(crate) start: usize,
-    pub(crate) end: usize,
-    pub(crate) node: T,
+#[derive(Clone, Debug, Hash)]
+pub struct Spanned<T> {
+    pub start: usize,
+    pub end: usize,
+    pub node: T,
 }
 
-pub(crate) type AstInt = Spanned<i32>;
-pub(crate) type AstString = Spanned<String>;
-pub(crate) type AstExp = Spanned<Exp>;
-pub(crate) type AstField = Spanned<Field>;
-pub(crate) type AstStm = Spanned<Stm>;
-pub(crate) type AstFun = Spanned<Fun>;
-pub(crate) type AstProg = Spanned<Prog>;
+pub type AstInt = Spanned<i32>;
+pub type AstString = Spanned<String>;
+pub type AstExp = Spanned<Exp>;
+pub type AstField = Spanned<Field>;
+pub type AstStm = Spanned<Stm>;
+pub type AstFun = Spanned<Fun>;
+pub type AstProg = Spanned<Prog>;
 
-#[derive(Debug)]
-pub(crate) struct Prog {
-    pub(crate) funs: Vec<AstFun>,
+#[derive(Debug, Hash)]
+pub struct Prog {
+    pub funs: Vec<AstFun>,
 }
 
-#[derive(Debug)]
-pub(crate) struct Fun {
-    pub(crate) name: AstString,
-    pub(crate) params: Vec<AstString>,
-    pub(crate) vars: Vec<AstString>,
-    pub(crate) stms: Vec<AstStm>,
-    pub(crate) return_: AstExp,
+#[derive(Debug, Hash)]
+pub struct Fun {
+    pub name: AstString,
+    pub params: Vec<AstString>,
+    pub vars: Vec<AstString>,
+    pub stms: Vec<AstStm>,
+    pub return_: AstExp,
 }
 
-#[derive(Debug)]
-pub(crate) enum Stm {
+#[derive(Debug, Hash)]
+pub enum Stm {
     IdentifierAssign(AstString, AstExp),
     PointerAssign(AstExp, AstExp),
     FieldAssign(AstString, AstString, AstExp),
@@ -38,8 +38,8 @@ pub(crate) enum Stm {
     While(AstExp, Vec<AstStm>),
 }
 
-#[derive(Debug)]
-pub(crate) enum Exp {
+#[derive(Debug, Hash)]
+pub enum Exp {
     Int(AstInt),
     Identifier(AstString),
     Unary(UnOp, Box<AstExp>),
@@ -54,19 +54,19 @@ pub(crate) enum Exp {
     Field(Box<AstExp>, AstString),
 }
 
-#[derive(Debug)]
-pub(crate) struct Field {
-    pub(crate) name: AstString,
-    pub(crate) value: Box<AstExp>,
+#[derive(Debug, Hash)]
+pub struct Field {
+    pub name: AstString,
+    pub value: Box<AstExp>,
 }
 
-#[derive(Debug)]
-pub(crate) enum UnOp {
+#[derive(Debug, Hash)]
+pub enum UnOp {
     Negative,
 }
 
-#[derive(Debug)]
-pub(crate) enum BinOp {
+#[derive(Debug, Hash)]
+pub enum BinOp {
     Add,
     Subtract,
     Multiply,
@@ -75,7 +75,7 @@ pub(crate) enum BinOp {
     Equal,
 }
 
-pub(crate) trait IntoSpanned: Sized {
+pub trait IntoSpanned: Sized {
     fn into_spanned(self, start: usize, end: usize) -> Spanned<Self> {
         Spanned {
             start,

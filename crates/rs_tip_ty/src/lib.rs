@@ -3,6 +3,7 @@ use std::{cell::RefCell, collections::HashMap, hash::Hash, rc::Rc};
 use hash::hash;
 
 mod hash;
+pub mod infer;
 pub mod solvers;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]

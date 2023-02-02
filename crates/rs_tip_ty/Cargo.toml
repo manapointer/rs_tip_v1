@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.68"
+rs_tip_syntax = { path = "../rs_tip_syntax" }
