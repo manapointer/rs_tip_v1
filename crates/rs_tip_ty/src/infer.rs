@@ -16,6 +16,8 @@ impl fmt::Display for InferenceError {
     }
 }
 
+pub type Result<T> = std::result::Result<T, InferenceError>;
+
 #[derive(Default)]
 struct Scope {
     name_to_ty: HashMap<String, Ty>,
@@ -62,14 +64,14 @@ impl<'a> InferenceContext<'a> {
         }
     }
 
-    fn infer_prog(&mut self, prog: &ast::AstProg) -> Result<InferenceResult, InferenceError> {
+    fn infer_prog(&mut self, prog: &ast::AstProg) -> Result<InferenceResult> {
         for fun in &prog.node.funs {
             self.infer_fun(fun)?;
         }
         todo!();
     }
 
-    fn infer_fun(&mut self, fun: &ast::AstFun) -> Result<(), InferenceError> {
+    fn infer_fun(&mut self, fun: &ast::AstFun) -> Result<()> {
         self.scopes.push(Scope::default());
         self.add_names(&fun.params);
         self.add_names(&fun.vars);
@@ -80,20 +82,18 @@ impl<'a> InferenceContext<'a> {
         Ok(())
     }
 
-    fn infer_stms(&mut self, stms: &Vec<ast::AstStm>) -> Result<(), InferenceError> {
+    fn infer_stms(&mut self, stms: &Vec<ast::AstStm>) -> Result<()> {
         for stm in stms {
             self.infer_stm(stm)?;
         }
         Ok(())
     }
 
-    fn infer_stm(&mut self, stm: &ast::AstStm) -> Result<(), InferenceError> {
+    fn infer_stm(&mut self, stm: &ast::AstStm) -> Result<()> {
         let node = &stm.node;
         match node {
             ast::Stm::IdentifierAssign(name, exp) => {
-                let name_ty = self
-                    .lookup(name)
-                    .ok_or_else(|| InferenceError::UndefinedVariable(name.node.clone()))?;
+                let name_ty = self.lookup(name)?;
                 let exp_ty = self.infer_exp(exp)?;
                 self.solver.unify(self.tcx, name_ty, exp_ty).unwrap();
             }
@@ -131,7 +131,7 @@ impl<'a> InferenceContext<'a> {
         Ok(())
     }
 
-    fn infer_exp(&mut self, exp: &ast::AstExp) -> Result<Ty, InferenceError> {
+    fn infer_exp(&mut self, exp: &ast::AstExp) -> Result<Ty> {
         let node = &exp.node;
         let ty = match node {
             ast::Exp::Int(_) => self.tcx.common().int(),
@@ -163,15 +163,24 @@ impl<'a> InferenceContext<'a> {
                 self.solver.unify(self.tcx, callee_ty, fun_ty).unwrap();
                 return_ty
             }
-            ast::Exp::Alloc(_) => todo!(),
-            ast::Exp::Pointer(_) => todo!(),
-            ast::Exp::Dereference(_) => todo!(),
-            ast::Exp::Null => todo!(),
+            ast::Exp::Alloc(alloc) => TyKind::Pointer(self.infer_exp(alloc)?).intern(self.tcx),
+            ast::Exp::Pointer(name) => {
+                let name_ty = self.lookup(name)?;
+                TyKind::Pointer(name_ty).intern(self.tcx)
+            }
+            ast::Exp::Dereference(exp) => {
+                let inner_ty = TyKind::make_var(self.tcx).intern(self.tcx);
+                let pointer_ty = TyKind::Pointer(inner_ty).intern(self.tcx);
+                let exp_ty = self.infer_exp(exp)?;
+                self.solver.unify(self.tcx, pointer_ty, exp_ty).unwrap();
+                inner_ty
+            }
+            ast::Exp::Null => TyKind::make_var(self.tcx).intern(self.tcx),
             ast::Exp::Record(_) => todo!(),
             ast::Exp::Field(_, _) => todo!(),
 
             // Handled in
-            ast::Exp::Identifier(_) => unreachable!(),
+            ast::Exp::Identifier(name) => self.lookup(name)?,
         };
         self.record_exp_ty(exp, ty);
         Ok(ty)
@@ -182,20 +191,17 @@ impl<'a> InferenceContext<'a> {
         ty
     }
 
-    fn alloc_ident(&mut self, name: String) {
-        let scope = self.scopes.last_mut().unwrap();
-    }
-
     fn add_names(&mut self, names: &[AstString]) {
         let scope = self.scopes.last_mut().unwrap();
         scope.add_names(names, self.tcx);
     }
 
-    fn lookup(&self, name: &str) -> Option<Ty> {
+    fn lookup(&self, name: &str) -> Result<Ty> {
         self.scopes
             .iter()
             .rev()
             .find_map(|scope| scope.name_to_ty.get(name).cloned())
+            .ok_or_else(|| InferenceError::UndefinedVariable(name.to_string()))
     }
 
     // fn make_
