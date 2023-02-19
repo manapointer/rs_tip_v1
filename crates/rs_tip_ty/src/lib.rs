@@ -11,6 +11,9 @@ mod hash;
 pub mod infer;
 pub mod solvers;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct VarId(u32);
 

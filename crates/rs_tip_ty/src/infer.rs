@@ -203,7 +203,4 @@ impl<'a> InferenceContext<'a> {
             .find_map(|scope| scope.name_to_ty.get(name).cloned())
             .ok_or_else(|| InferenceError::UndefinedVariable(name.to_string()))
     }
-
-    // fn make_
-    // fn make_exp(&)
 }
