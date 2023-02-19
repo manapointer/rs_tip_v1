@@ -1,8 +1,18 @@
+use std::ops::Deref;
+
 #[derive(Clone, Debug, Hash)]
 pub struct Spanned<T> {
     pub start: usize,
     pub end: usize,
     pub node: T,
+}
+
+impl<T> Deref for Spanned<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.node
+    }
 }
 
 pub type AstInt = Spanned<i32>;

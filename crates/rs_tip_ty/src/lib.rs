@@ -1,4 +1,9 @@
-use std::{cell::RefCell, collections::HashMap, hash::Hash, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    collections::HashMap,
+    hash::Hash,
+    rc::Rc,
+};
 
 use hash::hash;
 
@@ -12,10 +17,22 @@ pub struct VarId(u32);
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct FreshVarId(u32);
 
+#[derive(Default)]
 pub struct Interners {
     counter: u32,
     ty_kinds_to_interned: HashMap<u64, u32>,
     interned_to_ty_kinds: HashMap<u32, Rc<TyKind>>,
+}
+
+impl Interners {
+    fn intern_ty_kind(&mut self, kind: TyKind) -> u32 {
+        self.counter += 1;
+        self.ty_kinds_to_interned
+            .insert(hash(&TyKind::Int), self.counter);
+        self.interned_to_ty_kinds
+            .insert(self.counter, Rc::new(TyKind::Int));
+        self.counter
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -35,13 +52,34 @@ impl<'tcx> TyCtxt<'tcx> {
     pub fn ty_kind(self, repr: u32) -> Rc<TyKind> {
         self.inner.ty_kind(repr)
     }
+
+    pub fn common(self) -> &'tcx CommonTypes {
+        &self.inner.common
+    }
 }
 
 pub struct TyCtxtInner {
+    counter: u32,
     interners: RefCell<Interners>,
+    common: CommonTypes,
+    next_var_id: Cell<u32>,
 }
 
 impl TyCtxtInner {
+    fn new() -> TyCtxtInner {
+        let mut interners = Interners::default();
+        let interned = interners.intern_ty_kind(TyKind::Int);
+
+        TyCtxtInner {
+            counter: 0,
+            interners: RefCell::new(interners),
+            common: CommonTypes {
+                int: Ty { interned },
+            },
+            next_var_id: Cell::default(),
+        }
+    }
+
     fn intern_ty_kind(&self, kind: TyKind) -> u32 {
         let hash = hash(&kind);
         let repr = self
@@ -52,16 +90,7 @@ impl TyCtxtInner {
             .cloned();
         match repr {
             Some(repr) => repr,
-            None => {
-                let mut interners = self.interners.borrow_mut();
-                interners.counter += 1;
-                let counter = interners.counter;
-                interners.ty_kinds_to_interned.insert(hash, counter);
-                interners
-                    .interned_to_ty_kinds
-                    .insert(counter, Rc::new(kind));
-                counter
-            }
+            None => self.interners.borrow_mut().intern_ty_kind(kind),
         }
     }
 
@@ -84,6 +113,22 @@ impl TyCtxtInner {
             Some(kind) => kind,
             None => panic!("invalid repr supplied to ty_kind"),
         }
+    }
+
+    fn alloc_var_id(&self) -> VarId {
+        let prev_var_id = self.next_var_id.get();
+        self.next_var_id.set(prev_var_id + 1);
+        VarId(prev_var_id + 1)
+    }
+}
+
+pub struct CommonTypes {
+    int: Ty,
+}
+
+impl CommonTypes {
+    fn int(&self) -> Ty {
+        self.int
     }
 }
 
@@ -184,6 +229,16 @@ impl TyKind {
             | (TyKind::Record(_), TyKind::Record(_))
             | (TyKind::AbsentField, TyKind::AbsentField) => self.arity() == other.arity(),
             _ => false,
+        }
+    }
+
+    fn make_var(interner: TyCtxt) -> TyKind {
+        TyKind::Var(interner.inner.alloc_var_id())
+    }
+
+    fn intern(self, interner: TyCtxt) -> Ty {
+        Ty {
+            interned: interner.intern_ty_kind(self),
         }
     }
 }
