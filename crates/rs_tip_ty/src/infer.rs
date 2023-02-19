@@ -95,7 +95,8 @@ impl<'a> InferenceContext<'a> {
             ast::Stm::IdentifierAssign(name, exp) => {
                 let name_ty = self.lookup(name)?;
                 let exp_ty = self.infer_exp(exp)?;
-                self.solver.unify(self.tcx, name_ty, exp_ty).unwrap();
+                // self.solver.unify(self.tcx, name_ty, exp_ty).unwrap();
+                self.unify(name_ty, exp_ty);
             }
             ast::Stm::PointerAssign(target, exp) => {
                 let target_ty = self.infer_exp(target)?;
@@ -133,57 +134,67 @@ impl<'a> InferenceContext<'a> {
 
     fn infer_exp(&mut self, exp: &ast::AstExp) -> Result<Ty> {
         let node = &exp.node;
-        let ty = match node {
-            ast::Exp::Int(_) => self.tcx.common().int(),
+
+        if let ast::Exp::Identifier(name) = node {
+            return self.lookup(name);
+        }
+
+        // Assign the expression a new type variable.
+        let exp_ty = TyKind::make_var(self.tcx).intern(self.tcx);
+        self.record_exp_ty(exp, exp_ty);
+
+        match node {
+            ast::Exp::Int(_) => {
+                self.unify_int(exp_ty);
+            }
             ast::Exp::Unary(_, operand) => {
                 let operand_ty = self.infer_exp(operand)?;
-                self.solver
-                    .unify(self.tcx, operand_ty, self.tcx.common().int())
-                    .unwrap();
-                self.tcx.common().int()
+                self.unify_int(operand_ty);
+                self.unify_int(exp_ty);
             }
             ast::Exp::Binary(lhs, _, rhs) => {
                 let lhs_ty = self.infer_exp(lhs)?;
-                self.solver
-                    .unify(self.tcx, lhs_ty, self.tcx.common().int())
-                    .unwrap();
+                self.unify_int(lhs_ty);
                 let rhs_ty = self.infer_exp(rhs)?;
-                self.solver
-                    .unify(self.tcx, rhs_ty, self.tcx.common().int())
-                    .unwrap();
-                self.tcx.common().int()
+                self.unify_int(rhs_ty);
+                self.unify_int(exp_ty);
             }
-            ast::Exp::Input => self.tcx.common().int(),
+            ast::Exp::Input => {
+                self.unify_int(exp_ty);
+            }
             ast::Exp::Call(callee, args) => {
                 let args_tys: Vec<Ty> =
                     Result::from_iter(args.iter().map(|arg| self.infer_exp(arg)))?;
                 let return_ty = TyKind::make_var(self.tcx).intern(self.tcx);
                 let callee_ty = self.infer_exp(callee)?;
                 let fun_ty = TyKind::Function(args_tys, return_ty).intern(self.tcx);
-                self.solver.unify(self.tcx, callee_ty, fun_ty).unwrap();
-                return_ty
+                self.unify(callee_ty, fun_ty);
+                self.unify(exp_ty, return_ty);
             }
-            ast::Exp::Alloc(alloc) => TyKind::Pointer(self.infer_exp(alloc)?).intern(self.tcx),
+            ast::Exp::Alloc(alloc) => {
+                let alloc_ty = self.infer_exp(alloc)?;
+                self.unify(exp_ty, TyKind::Pointer(alloc_ty).intern(self.tcx));
+            }
             ast::Exp::Pointer(name) => {
-                let name_ty = self.lookup(name)?;
-                TyKind::Pointer(name_ty).intern(self.tcx)
+                self.unify(exp_ty, TyKind::Pointer(self.lookup(name)?).intern(self.tcx));
             }
-            ast::Exp::Dereference(exp) => {
+            ast::Exp::Dereference(deref) => {
                 let inner_ty = TyKind::make_var(self.tcx).intern(self.tcx);
                 let pointer_ty = TyKind::Pointer(inner_ty).intern(self.tcx);
-                let exp_ty = self.infer_exp(exp)?;
-                self.solver.unify(self.tcx, pointer_ty, exp_ty).unwrap();
-                inner_ty
+                let deref_ty = self.infer_exp(deref)?;
+                self.unify(pointer_ty, deref_ty);
+                self.unify(exp_ty, inner_ty);
             }
-            ast::Exp::Null => TyKind::make_var(self.tcx).intern(self.tcx),
+            ast::Exp::Null => {
+                self.unify(exp_ty, TyKind::make_var(self.tcx).intern(self.tcx));
+            }
             ast::Exp::Record(_) => todo!(),
             ast::Exp::Field(_, _) => todo!(),
 
-            // Handled in
-            ast::Exp::Identifier(name) => self.lookup(name)?,
+            // Handled above.
+            ast::Exp::Identifier(_) => unreachable!(),
         };
-        self.record_exp_ty(exp, ty);
-        Ok(ty)
+        Ok(exp_ty)
     }
 
     fn record_exp_ty(&mut self, exp: &ast::AstExp, ty: Ty) -> Ty {
@@ -202,5 +213,13 @@ impl<'a> InferenceContext<'a> {
             .rev()
             .find_map(|scope| scope.name_to_ty.get(name).cloned())
             .ok_or_else(|| InferenceError::UndefinedVariable(name.to_string()))
+    }
+
+    fn unify(&mut self, t1: Ty, t2: Ty) {
+        self.solver.unify(self.tcx, t1, t2).unwrap();
+    }
+
+    fn unify_int(&mut self, ty: Ty) {
+        self.unify(ty, self.tcx.common().int());
     }
 }
