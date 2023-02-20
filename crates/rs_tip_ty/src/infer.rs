@@ -188,6 +188,10 @@ impl<'a> InferenceContext<'a> {
             ast::Exp::Null => {
                 self.unify(exp_ty, TyKind::make_var(self.tcx).intern(self.tcx));
             }
+            ast::Exp::Paren(inner) => {
+                let inner_ty = self.infer_exp(inner)?;
+                self.unify(exp_ty, inner_ty);
+            }
             ast::Exp::Record(_) => todo!(),
             ast::Exp::Field(_, _) => todo!(),
 

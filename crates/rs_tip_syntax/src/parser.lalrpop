@@ -77,6 +77,7 @@ PrimaryExp: AstExp = {
     <l:@L> "input" <r:@R> => Exp::Input.into_spanned(l, r),
     <l:@L> "null" <r:@R> => Exp::Null.into_spanned(l, r),
     <l:@L> "{" <fields:Comma<Field>> "}" <r:@R> => Exp::Record(fields).into_spanned(l, r),
+    <l:@L> "(" <exp:Exp> ")" <r:@R> => Exp::Paren(Box::new(exp)).into_spanned(l, r),
 }
 
 Field: AstField = Spanned<Field_>;

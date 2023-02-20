@@ -62,6 +62,7 @@ pub enum Exp {
     Null,
     Record(Vec<AstField>),
     Field(Box<AstExp>, AstString),
+    Paren(Box<AstExp>),
 }
 
 #[derive(Debug, Hash)]
