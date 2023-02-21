@@ -49,6 +49,7 @@ pub fn infer(tcx: TyCtxt<'_>, prog: &ast::AstProg) -> InferenceResult {
 struct InferenceContext<'a> {
     tcx: TyCtxt<'a>,
     expr_to_ty: RefMap<ast::AstExp, Ty>,
+    free_var_to_fresh_var: HashMap<Ty, Ty>,
     solver: UnionFindSolver,
     scopes: Vec<Scope>,
 }
@@ -59,16 +60,21 @@ impl<'a> InferenceContext<'a> {
         InferenceContext {
             tcx,
             expr_to_ty: RefMap::new(),
+            free_var_to_fresh_var: HashMap::new(),
             solver: UnionFindSolver::default(),
             scopes: vec![global_scope],
         }
     }
 
-    fn infer_prog(&mut self, prog: &ast::AstProg) -> Result<InferenceResult> {
+    fn infer(self, prog: &ast::AstProg) -> Result<InferenceResult> {
+        self.infer_prog(prog)?;
+    }
+
+    fn infer_prog(&mut self, prog: &ast::AstProg) -> Result<()> {
         for fun in &prog.node.funs {
             self.infer_fun(fun)?;
         }
-        todo!();
+        Ok(())
     }
 
     fn infer_fun(&mut self, fun: &ast::AstFun) -> Result<()> {
